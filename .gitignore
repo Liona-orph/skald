@@ -1,0 +1,44 @@
+# Build output
+/bin/
+/dist/
+skaldd
+skaldctl
+
+# Test and coverage artefacts
+*.test
+*.out
+coverage.txt
+coverage.html
+/testdata/tmp/
+# Go's fuzzing corpus cache; the committed seed corpus lives in testdata/fuzz.
+**/testdata/fuzz/**/[0-9a-f]*
+
+# Profiling output
+*.prof
+*.pprof
+cpu.out
+mem.out
+trace.out
+
+# Local state. The default store path is ./skald.db, and it contains every
+# payload every workflow has ever handled -- never commit one.
+*.db
+*.db-wal
+*.db-shm
+/data/
+
+# Local configuration and secrets
+*.local.json
+.env
+.env.*
+
+# Editors and tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker Compose volumes
+/deploy/**/data/
