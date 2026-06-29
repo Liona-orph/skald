@@ -1,8 +1,9 @@
 # Build output
 /bin/
 /dist/
-skaldd
-skaldctl
+# Anchored: an unanchored `skaldd` also matches cmd/skaldd/, which is source.
+/skaldd
+/skaldctl
 
 # Test and coverage artefacts
 *.test
