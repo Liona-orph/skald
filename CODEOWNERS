@@ -1,0 +1,42 @@
+# Code owners are requested for review automatically. The later a rule appears,
+# the higher its precedence: the last matching rule wins.
+
+*                               @skald-io/maintainers
+
+# The persisted format. A change here is close to irreversible: event type codes
+# are permanent and histories written years ago must still decode.
+/pkg/history/                   @skald-io/maintainers @skald-io/core
+/internal/execution/            @skald-io/maintainers @skald-io/core
+
+# The wire protocol. Adding a field is routine; changing one breaks clients that
+# are not deployed with the server.
+/pkg/api/                       @skald-io/maintainers @skald-io/core
+/internal/frontend/             @skald-io/maintainers @skald-io/core
+
+# The write path and the storage contract, where crash-safety lives.
+/internal/engine/               @skald-io/maintainers @skald-io/core
+/internal/persistence/          @skald-io/maintainers @skald-io/core
+
+# Determinism. A change here can wedge every in-flight execution in a fleet.
+/internal/workflow/             @skald-io/maintainers @skald-io/core
+/pkg/workflow/                  @skald-io/maintainers @skald-io/core
+/pkg/worker/                    @skald-io/maintainers @skald-io/core
+
+# Architecture decisions are reviewed by maintainers regardless of who writes
+# the code that follows them.
+/docs/adr/                      @skald-io/maintainers
+
+# Release, supply chain and CI configuration.
+/.github/                       @skald-io/maintainers
+/.goreleaser.yml                @skald-io/maintainers
+/Dockerfile                     @skald-io/maintainers
+/.dockerignore                  @skald-io/maintainers
+/docker-compose.yml             @skald-io/maintainers
+/Makefile                       @skald-io/maintainers
+/.golangci.yml                  @skald-io/maintainers
+/go.mod                         @skald-io/maintainers
+/go.sum                         @skald-io/maintainers
+
+# Alerting rules name metrics that internal/telemetry must keep emitting: a
+# rename there and a rule here are one change, reviewed together.
+/deploy/                        @skald-io/maintainers @skald-io/core
