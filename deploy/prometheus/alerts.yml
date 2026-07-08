@@ -1,0 +1,219 @@
+# Alerting rules for Skald.
+#
+# Every expression below uses a metric that internal/telemetry/metrics.go
+# actually emits. The prose for the first four is in
+# docs/operations.md#alerts; this file is the executable form, plus the ones
+# that are too mechanical to be worth a paragraph there.
+#
+# Two severities, and they mean something:
+#
+#   page   -- work has stopped or is being lost, and it will not resume without
+#             a human. Wake someone up.
+#   ticket -- a trend that will become a page if nobody looks. Business hours.
+#
+# There is no "warning" severity, because a warning is a page nobody answers.
+
+groups:
+  - name: skald.availability
+    rules:
+      - alert: SkaldDown
+        expr: up{job="skaldd"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "skaldd is not being scraped"
+          description: >-
+            Prometheus cannot reach {{ $labels.instance }}. Skald is a
+            single-node engine: if this is the one, every workflow in the
+            deployment is stopped, and durable timers are not firing.
+          runbook: "docs/operations.md#deployment-topologies"
+
+  - name: skald.correctness
+    rules:
+      # The one that matters most. Skald refuses to advance an execution whose
+      # replay disagrees with its history (ADR 0008); nothing is lost, and
+      # nothing recovers on its own either.
+      - alert: SkaldNonDeterminism
+        expr: |
+          sum(rate(skald_requests_total{operation="RespondWorkflowTaskFailed"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "Workflow tasks are failing; executions are wedged and not advancing"
+          description: >-
+            The metric does not distinguish causes. Confirm with the worker
+            logs, which name the workflow type, the event and the mismatch.
+            The usual cause is workflow code deployed without a GetVersion gate.
+          runbook: "docs/operations.md#responding-to-a-non-determinism-incident"
+
+      # A workflow that terminates itself is a business outcome. A sustained
+      # rate of them is a deploy that broke something.
+      - alert: SkaldWorkflowFailureRateHigh
+        expr: |
+          sum(rate(skald_workflow_completions_total{status!~"COMPLETED|CANCELED|CONTINUED_AS_NEW"}[15m])) by (namespace)
+            /
+          clamp_min(sum(rate(skald_workflow_completions_total[15m])) by (namespace), 0.001)
+            > 0.25
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Over a quarter of workflows in {{ $labels.namespace }} are ending badly"
+          description: >-
+            Ratio of terminal statuses that are not COMPLETED, CANCELED or
+            CONTINUED_AS_NEW -- that is, FAILED, TERMINATED and TIMED_OUT.
+            Break it down by status in Grafana before assuming it is a bug: a
+            batch of legitimately failing inputs looks identical here.
+
+  - name: skald.dispatch
+    rules:
+      # Work is queued and nothing will pick it up. Usually a worker deployment
+      # that failed, or a task queue name typo after a rename.
+      - alert: SkaldQueueUnserved
+        expr: |
+          skald_task_queue_backlog > 0
+            and on (namespace, task_queue, kind) skald_task_queue_pollers == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.task_queue }} ({{ $labels.kind }}) has work and no workers polling"
+          description: >-
+            Backlog {{ $value }} with zero parked pollers in namespace
+            {{ $labels.namespace }}. Check that the worker fleet is running and
+            that its task queue name still matches the one workflows schedule to.
+          runbook: "docs/operations.md#diagnosing-a-stuck-workflow"
+
+      # The sync-match ratio is the single best dispatch health signal: a
+      # healthy deployment has more pollers than tasks, so nearly every match is
+      # sync. It falls when workers are saturated.
+      - alert: SkaldSyncMatchRatioLow
+        expr: |
+          sum(rate(skald_task_matches_total{match="sync"}[10m])) by (namespace, task_queue, kind)
+            /
+          clamp_min(sum(rate(skald_task_matches_total[10m])) by (namespace, task_queue, kind), 0.001)
+            < 0.5
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.task_queue }} is dispatching through the backlog, not to waiting pollers"
+          description: >-
+            Fewer than half of matches found a poller already waiting. Workers
+            are saturated or too few. Raise MaxConcurrentActivityTasks or add
+            worker processes.
+
+      # A dropped task is delayed, not lost -- the startup scan or a
+      # schedule-to-start timeout recovers it -- but a queue at its cap means
+      # workers are far behind.
+      - alert: SkaldTasksDropped
+        expr: |
+          sum(rate(skald_tasks_dropped_total{reason="backlog_full"}[5m])) by (namespace, task_queue) > 0
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.task_queue }} is dropping task references (backlog full)"
+          runbook: "docs/operations.md#capacity-guidance"
+
+  - name: skald.storage
+    rules:
+      # Every durable operation goes through this path.
+      - alert: SkaldAppendSlow
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skald_history_append_duration_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "p99 history append is above 500ms"
+          description: >-
+            The disk, the page cache or the WAL checkpoint is in trouble.
+            Measured at the API boundary, so it includes decode, validation and
+            state rebuild.
+          runbook: "docs/operations.md#capacity-guidance"
+
+      - alert: SkaldAppendCritical
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skald_history_append_duration_seconds_bucket[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "p99 history append is above 2s; workflow tasks are about to time out"
+          description: >-
+            The workflow task timeout is 10s. At this append latency the system
+            enters a retry loop that makes the store slower still.
+          runbook: "docs/operations.md#capacity-guidance"
+
+  - name: skald.api
+    rules:
+      - alert: SkaldRequestErrorRateHigh
+        expr: |
+          sum(rate(skald_request_errors_total{code!="not_found"}[5m])) by (operation)
+            /
+          clamp_min(sum(rate(skald_requests_total[5m])) by (operation), 0.001)
+            > 0.05
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.operation }} is failing for more than 5% of calls"
+          description: >-
+            not_found is excluded: a client polling for a workflow that has not
+            started yet is a normal shape, not an error budget.
+
+      - alert: SkaldRequestLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skald_request_duration_seconds_bucket[5m])) by (le, operation)
+          ) > 1
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "p99 latency of {{ $labels.operation }} is above 1s"
+          description: >-
+            This histogram covers non-polling operations only; long polls are
+            measured separately in skald_poll_duration_seconds and are supposed
+            to sit at the poll timeout.
+
+      # Retries increment attempts, so attempts/results is the retry
+      # amplification of a deployment. Above 3 sustained means a dependency is
+      # failing and you are hammering it.
+      - alert: SkaldActivityRetryAmplification
+        expr: |
+          sum(rate(skald_activity_attempts_total[10m])) by (namespace)
+            /
+          clamp_min(sum(rate(skald_activity_results_total[10m])) by (namespace), 0.001)
+            > 3
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Activities in {{ $labels.namespace }} are being retried more than 3x on average"
+          description: >-
+            A dependency is failing. skald_activity_results_total is not
+            labelled by activity type, so use the worker logs or skaldctl to
+            find which activity it is.
+
+      # In-flight requests that never drain. Every handler has a deadline, so a
+      # gauge that stays high means requests are arriving faster than they
+      # complete rather than that one is stuck.
+      - alert: SkaldRequestsPilingUp
+        expr: |
+          sum(skald_requests_in_flight{operation!~"Poll.*|GetHistory"}) > 200
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Non-polling requests are queueing up in skaldd"
+          description: >-
+            Polls and GetHistory are excluded because a parked long poll is
+            in flight by design and a healthy fleet holds one per poller.

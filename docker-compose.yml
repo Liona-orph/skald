@@ -1,0 +1,98 @@
+# A local Skald stack: the engine, a Prometheus that scrapes it, and a Grafana
+# with the dashboard and the datasource already provisioned.
+#
+#   docker compose up -d --build
+#
+#   skaldd      http://localhost:7233
+#   Prometheus  http://localhost:9090
+#   Grafana     http://localhost:3000   (admin / admin)
+#
+# This is a development stack. It publishes on 127.0.0.1 only, it runs one
+# skaldd -- which is the supported topology, since matching is process-local --
+# and it sets no auth token, because everything on this network is yours. Do
+# not lift it into production without reading docs/operations.md.
+
+name: skald
+
+services:
+  skaldd:
+    build:
+      context: .
+      args:
+        VERSION: ${SKALD_VERSION:-dev}
+        COMMIT: ${SKALD_COMMIT:-none}
+        BUILD_DATE: ${SKALD_BUILD_DATE:-unknown}
+    image: ghcr.io/skald-io/skald:${SKALD_VERSION:-dev}
+    restart: unless-stopped
+    ports:
+      # Bound to loopback. An engine with no auth token on 0.0.0.0 is a remote
+      # code execution primitive for anyone who can reach it.
+      - "127.0.0.1:7233:7233"
+    environment:
+      SKALD_ADDR: 0.0.0.0:7233
+      SKALD_STORE: sqlite
+      # The named volume below. SQLite over a bind mount to a host filesystem
+      # that is not local disk is a way to corrupt a database; a named volume
+      # keeps it on the daemon's own storage.
+      SKALD_SQLITE_PATH: /var/lib/skald/skald.db
+      SKALD_LOG_LEVEL: ${SKALD_LOG_LEVEL:-info}
+      SKALD_LOG_FORMAT: json
+      SKALD_RUNTIME_METRICS: "true"
+    volumes:
+      - skald-data:/var/lib/skald
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck"]
+      interval: 10s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      # SQLite writes its WAL and temp files next to the database, which is on
+      # the volume; nothing else in this image needs a writable path. The
+      # rootfs is read-only so that a compromise cannot persist a binary.
+      - /tmp
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    depends_on:
+      skaldd:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./deploy/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      # No sign-up, no anonymous access, no phone-home. This is a local stack.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  skald-data:
+  prometheus-data:
+  grafana-data:

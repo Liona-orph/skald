@@ -1,0 +1,66 @@
+# CodeQL, on pull requests and weekly.
+#
+# The weekly run is the point of the schedule: CodeQL's query pack is updated
+# continuously, so a query written after a commit merged still finds what is in
+# that commit. Without it, code is only ever analysed by the rules that existed
+# the day it landed.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 04:17 on Mondays. Off the hour on purpose: every scheduled job in the
+    # world runs at :00, and GitHub delays the queue accordingly.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  analyze:
+    name: Analyze (go)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Upload the SARIF results to the Security tab.
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@f09c1c0a94de965c15400f5634aa42fac8fb8f88 # v3.27.5
+        with:
+          languages: go
+          build-mode: manual
+          # security-extended adds the queries that are accurate but slower
+          # than the default set. This codebase is 41k lines; the extra minutes
+          # are free.
+          queries: security-extended
+
+      # build-mode: manual, because autobuild would run `go build ./...` and
+      # miss the test packages -- where the fixtures that parse untrusted
+      # history live.
+      - name: Build
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@f09c1c0a94de965c15400f5634aa42fac8fb8f88 # v3.27.5
+        with:
+          category: "/language:go"

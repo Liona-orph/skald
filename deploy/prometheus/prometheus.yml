@@ -1,0 +1,43 @@
+# Prometheus for the local Skald stack.
+#
+# The scrape interval is 15s and the alerting rules in alerts.yml are all
+# written over 5m windows, which is twenty samples -- enough that a single
+# missed scrape cannot fire or clear anything.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    stack: skald-local
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# No Alertmanager in the local stack: the rules are here so that they are
+# evaluated and visible at http://localhost:9090/alerts, which is where you find
+# out whether a rule you just wrote actually matches anything. Point this at a
+# real Alertmanager before relying on any of them to page.
+#
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: skaldd
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["skaldd:7233"]
+        labels:
+          instance_role: engine
+    # /metrics is behind the bearer token when skaldd is started with one. The
+    # local stack sets no token; a deployment that does needs this:
+    #
+    # authorization:
+    #   type: Bearer
+    #   credentials_file: /etc/prometheus/skald-token

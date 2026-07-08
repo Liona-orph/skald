@@ -1,0 +1,29 @@
+# Blank issues are off: an issue with no reproduction and no version is a
+# conversation that has to start over. The links below are where the traffic
+# that would have opened one should go instead.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or design discussion
+    url: https://github.com/skald-io/skald/discussions
+    about: >-
+      "How do I model this workflow", "is this the intended behaviour",
+      "should this be a feature". Discussions, not issues.
+
+  - name: Security vulnerability
+    url: https://github.com/skald-io/skald/security/advisories/new
+    about: >-
+      Report privately. Do not open a public issue -- see SECURITY.md for the
+      disclosure process and the supported versions.
+
+  - name: Operating Skald
+    url: https://github.com/skald-io/skald/blob/main/docs/operations.md
+    about: >-
+      The runbook: configuration, metrics, alerts, diagnosing a stuck workflow,
+      and what to do about a non-determinism incident.
+
+  - name: Writing workflows
+    url: https://github.com/skald-io/skald/blob/main/docs/writing-workflows.md
+    about: >-
+      Determinism rules, versioning an in-flight workflow, and the mistakes the
+      replayer will catch for you.

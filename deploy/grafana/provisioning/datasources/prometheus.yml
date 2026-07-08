@@ -1,0 +1,23 @@
+# The datasource the dashboard binds to.
+#
+# The uid is fixed and referenced by every panel in
+# deploy/grafana/dashboards/skald.json. A provisioned datasource with a
+# generated uid would leave the dashboard's panels pointing at nothing, which
+# renders as "Datasource ${DS} was not found" on every graph.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: skald-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Matches global.scrape_interval in deploy/prometheus/prometheus.yml.
+      # Grafana uses it as the floor for $__rate_interval, so a rate() over a
+      # window shorter than two scrapes cannot be requested by accident.
+      timeInterval: 15s
+      httpMethod: POST

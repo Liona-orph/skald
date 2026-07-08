@@ -1,0 +1,198 @@
+# GoReleaser builds every artefact a Skald release publishes.
+#
+#   goreleaser check                 validate this file
+#   goreleaser release --snapshot --clean   build everything locally, publish nothing
+#   git tag -s v1.2.3 && git push --tags    the real thing, via .github/workflows/release.yml
+#
+# The release is reproducible in the sense that matters: -trimpath removes the
+# builder's paths, mod_timestamp pins every file's mtime to the tagged commit's,
+# and the version stamped into the binary is the tag rather than whatever
+# `git describe` said on the machine that ran it.
+
+version: 2
+
+project_name: skald
+
+before:
+  hooks:
+    - go mod download
+    - go mod verify
+
+builds:
+  - id: skaldd
+    main: ./cmd/skaldd
+    binary: skaldd
+    env:
+      # No cgo anywhere. modernc.org/sqlite is a pure-Go transliteration of
+      # SQLite precisely so that this line can be true: the release binaries
+      # are static, cross-compile without a C toolchain, and run on distroless.
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .FullCommit }}
+      - -X main.buildDate={{ .CommitDate }}
+
+  - id: skaldctl
+    main: ./cmd/skaldctl
+    binary: skaldctl
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      # skaldctl's build vars live in the commands package, not in main: main is
+      # eight lines, and the version string is rendered next to the command
+      # that prints it.
+      - -s -w
+      - -X github.com/skald-io/skald/cmd/skaldctl/commands.version={{ .Version }}
+      - -X github.com/skald-io/skald/cmd/skaldctl/commands.commit={{ .FullCommit }}
+      - -X github.com/skald-io/skald/cmd/skaldctl/commands.buildDate={{ .CommitDate }}
+
+archives:
+  # One archive per platform holding both binaries: they are two halves of one
+  # tool, and an operator who downloads the server and then discovers the CLI is
+  # a separate download has already had a worse day than necessary.
+  - id: default
+    ids: [skaldd, skaldctl]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - SECURITY.md
+      - src: docs/**/*
+        dst: docs
+
+checksums:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+sboms:
+  # A CycloneDX SBOM per archive. It is generated from the archive rather than
+  # from the module graph so that it describes what was actually shipped.
+  - id: archive
+    artifacts: archive
+    documents:
+      - "{{ .ArtifactName }}.sbom.json"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  # Conventional commits, grouped. Anything that does not parse lands in
+  # "Other" rather than being dropped, because a silently missing entry is
+  # worse than an ugly one.
+  use: github
+  sort: asc
+  groups:
+    - title: Breaking changes
+      regexp: '^.*?(\w+)(\([\w\-\.]+\))?!:.*$'
+      order: 0
+    - title: Features
+      regexp: '^.*?feat(\([\w\-\.]+\))?:.+$'
+      order: 1
+    - title: Fixes
+      regexp: '^.*?fix(\([\w\-\.]+\))?:.+$'
+      order: 2
+    - title: Performance
+      regexp: '^.*?perf(\([\w\-\.]+\))?:.+$'
+      order: 3
+    - title: Documentation
+      regexp: '^.*?docs(\([\w\-\.]+\))?:.+$'
+      order: 4
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^chore(\([\w\-\.]+\))?:'
+      - '^test(\([\w\-\.]+\))?:'
+      - '^ci(\([\w\-\.]+\))?:'
+      - '^style(\([\w\-\.]+\))?:'
+      - "^Merge "
+
+dockers:
+  - id: amd64
+    use: buildx
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    image_templates:
+      - "ghcr.io/skald-io/skald:{{ .Version }}-amd64"
+      - "ghcr.io/skald-io/skald:latest-amd64"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=COMMIT={{ .FullCommit }}"
+      - "--build-arg=BUILD_DATE={{ .CommitDate }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.created={{ .CommitDate }}"
+
+  - id: arm64
+    use: buildx
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    image_templates:
+      - "ghcr.io/skald-io/skald:{{ .Version }}-arm64"
+      - "ghcr.io/skald-io/skald:latest-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=COMMIT={{ .FullCommit }}"
+      - "--build-arg=BUILD_DATE={{ .CommitDate }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.created={{ .CommitDate }}"
+
+docker_manifests:
+  # The manifest is what `docker pull ghcr.io/skald-io/skald:v1.2.3` resolves;
+  # the per-arch tags above exist only to be pointed at by these.
+  - name_template: "ghcr.io/skald-io/skald:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/skald-io/skald:{{ .Version }}-amd64"
+      - "ghcr.io/skald-io/skald:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/skald-io/skald:latest"
+    image_templates:
+      - "ghcr.io/skald-io/skald:latest-amd64"
+      - "ghcr.io/skald-io/skald:latest-arm64"
+
+release:
+  github:
+    owner: skald-io
+    name: skald
+  draft: false
+  # A tag with a suffix (v1.2.3-rc1) is marked pre-release automatically.
+  prerelease: auto
+  name_template: "{{ .Version }}"
+  footer: |
+    ## Install
+
+    ```bash
+    go install github.com/skald-io/skald/cmd/skaldd@{{ .Tag }}
+    go install github.com/skald-io/skald/cmd/skaldctl@{{ .Tag }}
+    ```
+
+    ```bash
+    docker pull ghcr.io/skald-io/skald:{{ .Version }}
+    ```
+
+    Verify a download against `checksums.txt`. Each archive ships a CycloneDX
+    SBOM alongside it.
+
+    **Upgrading:** read the `CHANGELOG.md` entry for this version before
+    deploying. Workflow code changes need a `workflow.GetVersion` gate; see
+    [docs/writing-workflows.md](https://github.com/skald-io/skald/blob/main/docs/writing-workflows.md).
