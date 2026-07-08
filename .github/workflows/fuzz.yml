@@ -1,0 +1,116 @@
+# Scheduled fuzzing.
+#
+# Go's fuzzer keeps its corpus in the build cache, not in the repository, so a
+# 30-second run in CI on every pull request explores almost nothing. Fuzzing is
+# worth doing at length or not at all -- so it runs nightly, for half an hour
+# per target, and a crash is committed back as a seed and turned into an issue.
+#
+# The corpus is restored from the actions cache between runs, which is what
+# makes each night's run continue the previous one rather than start over.
+
+name: Fuzz
+
+on:
+  schedule:
+    # 03:41 nightly.
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: "Duration per target (Go duration, e.g. 30m)"
+        type: string
+        default: "10m"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover targets
+    runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.find.outputs.targets }}
+      any: ${{ steps.find.outputs.any }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: "1.23"
+          cache: true
+
+      # The matrix is built from the tree rather than written down, so adding a
+      # FuzzXxx function is all it takes to have it fuzzed nightly. There is no
+      # list to forget to update.
+      - id: find
+        name: Find FuzzXxx functions
+        run: |
+          targets=$(
+            for pkg in $(go list ./...); do
+              dir=$(go list -f '{{.Dir}}' "$pkg")
+              grep -hoE '^func +Fuzz[A-Za-z0-9_]*' "$dir"/*_test.go 2>/dev/null \
+                | awk -v p="$pkg" '{print p" "$2}'
+            done | sort -u
+          )
+          if [ -z "$targets" ]; then
+            echo "no fuzz targets in this tree"
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            echo 'targets=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$targets"
+          json=$(echo "$targets" | awk '{printf "{\"pkg\":\"%s\",\"target\":\"%s\"},", $1, $2}')
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          echo "targets=[${json%,}]" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    needs: discover
+    if: needs.discover.outputs.any == 'true'
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: "1.23"
+          cache: true
+
+      # Go writes the generated corpus under $GOCACHE/fuzz. Restoring it is
+      # what turns a nightly job into a fuzzing campaign.
+      - name: Restore corpus
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/.cache/go-build/fuzz
+          key: fuzz-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-${{ matrix.target }}-
+
+      - name: Fuzz
+        run: |
+          go test "${{ matrix.pkg }}" \
+            -run '^$' \
+            -fuzz '^${{ matrix.target }}$' \
+            -fuzztime '${{ inputs.fuzztime || ''30m'' }}'
+
+      # A crasher is written to testdata/fuzz/<Target>/ next to the test. It is
+      # the reproduction, and it belongs in the repository -- so it is uploaded
+      # here and committed by hand with the fix, which is how it becomes a
+      # regression test.
+      - name: Upload crashers
+        if: failure()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: fuzz-crashers-${{ matrix.target }}
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore
+          retention-days: 30

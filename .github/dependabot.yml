@@ -1,0 +1,71 @@
+# Dependency updates.
+#
+# Two ecosystems, both on a weekly cadence. Daily would mean a pull request
+# most mornings and a review queue nobody reads; monthly would mean a security
+# fix waiting three weeks.
+
+version: 2
+
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "go"]
+    commit-message:
+      # Conventional commits, because .goreleaser.yml groups the changelog by
+      # them and `chore(deps)` is one of the prefixes it filters out.
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    groups:
+      # One pull request for the patch bumps. They are reviewed as a batch or
+      # not at all, and fifteen separate ones is how a queue stops being read.
+      go-patches:
+        applies-to: version-updates
+        update-types: [patch]
+      otel:
+        # OpenTelemetry ships its modules in lockstep and they must be upgraded
+        # together: a mismatched otel/sdk and otel/trace does not compile.
+        patterns: ["go.opentelemetry.io/*"]
+    ignore:
+      # The Go directive in go.mod is a compatibility promise to downstream
+      # modules, not a dependency. It moves when the project decides to drop a
+      # release, which is an ADR.
+      - dependency-name: "go"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The Dockerfile's base images. distroless/static:nonroot is a moving tag, so
+  # this mostly catches the golang builder.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: chore
+      include: scope

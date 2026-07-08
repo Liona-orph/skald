@@ -1,0 +1,182 @@
+# The gate. `make ci` runs the same checks locally, in the same order.
+#
+# Actions are pinned to a full commit SHA rather than a tag: a tag is mutable,
+# and an action runs with access to this repository's token. Dependabot keeps
+# the SHAs current (see .github/dependabot.yml).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags-ignore: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only by default. A job that needs more says so itself.
+permissions:
+  contents: read
+
+# One run per ref. A push that lands while CI is still running on the previous
+# commit cancels it -- except on main, where every commit's result is a fact
+# somebody may need later.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # The version the module targets. The matrix below also tests the previous
+  # minor, because a library that only builds on the newest Go is a library
+  # nobody can adopt mid-quarter.
+  GO_VERSION: "1.23"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -s -l $(find . -name '*.go' -not -path './.git/*'))
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt -s clean"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
+        with:
+          # Must match GOLANGCI_VERSION in the Makefile: a contributor whose
+          # local `make lint` disagrees with CI stops trusting either.
+          version: v1.62.2
+          args: --timeout=5m
+
+      - name: go mod tidy is a no-op
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+  test:
+    name: Test (go ${{ matrix.go }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # go.mod declares `go 1.23`, so the 1.22 cell exercises the path a
+        # contributor on the previous minor actually takes: the toolchain
+        # directive resolves, Go fetches 1.23 and builds with it. It is a real
+        # check -- it fails the day something makes that resolution impossible,
+        # which is the day 1.22 users are locked out -- and it becomes a second
+        # compiler the moment the go directive drops below the newest release.
+        go: ["1.22", "1.23"]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      # -race needs cgo. It is the only thing in this repository that does, and
+      # it is worth it: this engine's whole job is concurrent, and a data race
+      # in the matcher would show up in production as a task that vanished.
+      - name: Test with the race detector
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          go test -race -covermode=atomic \
+            -coverprofile=coverage.out -coverpkg=./... ./...
+
+      - name: Coverage total
+        run: go tool cover -func=coverage.out | tail -n 1
+
+      - name: Upload coverage
+        if: matrix.go == '1.23'
+        uses: codecov/codecov-action@015f24e6818733317a2da2edd6290ab26238649a # v5.0.7
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # Cross-compilation only, no tests: this job answers "does the release
+      # matrix still build", which is the question a pure-Go dependency graph
+      # can regress silently (a build tag, a syscall, an unsupported GOARCH).
+      - name: Build both binaries
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -trimpath -ldflags '-s -w' -o /dev/null ./cmd/skaldd
+          go build -trimpath -ldflags '-s -w' -o /dev/null ./cmd/skaldctl
+
+  simulation:
+    name: Simulation
+    runs-on: ubuntu-24.04
+    # The sweep takes minutes and is the last thing to fail. Gating it on the
+    # unit tests keeps a compile error from burning that time.
+    needs: test
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # A far larger seed count than `make sim` runs locally. The simulator is
+      # a fault injector over a deterministic clock: every seed is a distinct
+      # interleaving of crashes, timeouts and retries, and a seed that fails
+      # here is a complete reproduction -- `go test ./internal/simulation
+      # -skald.seed=N` replays exactly it.
+      - name: Deterministic simulation sweep
+        run: |
+          go test ./internal/simulation -run TestSimulation -count=1 -v \
+            -timeout 30m -skald.seeds=5000
+
+  # A single required check, so branch protection needs one entry rather than
+  # one per matrix cell. It fails if anything above failed, was cancelled or
+  # was skipped.
+  ci:
+    name: CI
+    runs-on: ubuntu-24.04
+    needs: [lint, test, build, simulation]
+    if: always()
+    steps:
+      - name: Verify every job succeeded
+        if: >-
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          contains(needs.*.result, 'skipped')
+        run: |
+          echo '${{ toJSON(needs) }}'
+          echo "::error::a required job did not succeed"
+          exit 1

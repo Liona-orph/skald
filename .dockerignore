@@ -1,0 +1,48 @@
+# Everything the build does not need. The build context is uploaded to the
+# daemon on every build, so this file is a build-speed setting as much as a
+# hygiene one.
+
+.git
+.github
+.gitignore
+.editorconfig
+.golangci.yml
+.goreleaser.yml
+
+# Docs and repository furniture
+docs
+*.md
+LICENSE
+CODEOWNERS
+
+# Build output that would shadow what the image builds
+bin
+dist
+skaldd
+skaldctl
+
+# Local state and secrets. A stray skald.db in the context would be baked into
+# a layer along with every payload it holds.
+*.db
+*.db-wal
+*.db-shm
+data
+.env
+.env.*
+*.local.json
+
+# Test and profiling artefacts
+*.test
+*.out
+*.prof
+*.pprof
+coverage.*
+
+# Compose and deployment assets, which are mounted rather than built in
+docker-compose.yml
+deploy
+
+# Editors
+.idea
+.vscode
+.DS_Store

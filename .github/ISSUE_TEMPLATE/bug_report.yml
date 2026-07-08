@@ -1,0 +1,108 @@
+name: Bug report
+description: Something in Skald does not do what it says it does.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A durable execution engine's bugs are usually bugs about *time*: a
+        crash at a particular instruction, a replay that diverged, a timer that
+        fired twice. The questions below exist to get at the sequence, because
+        without it a report is a symptom and the fix is a guess.
+
+        If this is a security issue, do not file it here. See
+        [SECURITY.md](https://github.com/skald-io/skald/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you observed, and what you expected instead.
+      placeholder: |
+        A workflow that sleeps for 24 hours resumed twice after the server was
+        restarted mid-sleep. I expected exactly one resumption.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        The smallest workflow, sequence of calls or test that shows it. A failing
+        `go test` is the best possible version of this. If you found it through
+        the simulator, the seed is a complete reproduction on its own -- paste it.
+      render: go
+    validations:
+      required: true
+
+  - type: input
+    id: seed
+    attributes:
+      label: Simulation seed
+      description: >-
+        If applicable. `go test ./internal/simulation -skald.seed=N` replays
+        exactly that interleaving.
+      placeholder: "-skald.seed=48291"
+
+  - type: textarea
+    id: history
+    attributes:
+      label: History
+      description: >-
+        `skaldctl workflow history <id> -o json` for the affected execution, if
+        you have it. Redact payloads -- the event types, IDs and ordering are
+        what matter. This is the single most useful attachment on a bug report
+        about a wedged or diverging execution.
+      render: json
+
+  - type: input
+    id: version
+    attributes:
+      label: Skald version
+      description: "`skaldd --version`, or the module version if you embed the engine."
+      placeholder: "skaldd v0.4.1 (commit 9f2c1ab, built 2025-03-02T11:04:00Z, go1.23.4)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: store
+    attributes:
+      label: Store
+      options:
+        - sqlite
+        - memory
+        - embedded (engine used as a library)
+        - other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS, architecture and Go version
+      placeholder: "linux/arm64, go1.23.4, running in the distroless image"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Server or worker log lines around the failure. Skald logs the effective
+        configuration at startup as one line; include it -- it answers "which of
+        the four places this could be set actually won".
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: I searched the existing issues.
+          required: true
+        - label: >-
+            I checked whether this is a documented behaviour rather than a bug
+            (docs/operations.md, docs/writing-workflows.md, docs/adr/).
+          required: true

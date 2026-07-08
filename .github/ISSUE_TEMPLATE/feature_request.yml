@@ -1,0 +1,83 @@
+name: Feature request
+description: Propose a capability Skald does not have.
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Skald's surface is deliberately small, and the cost of a feature here is
+        not the code -- it is the history format, which is permanent, and the
+        determinism contract, which every in-flight execution depends on.
+        The questions below are the ones a maintainer will ask anyway.
+
+        A proposal that changes the persisted format, the wire protocol or the
+        replay rules needs an ADR before it needs an implementation. See
+        [docs/adr/](https://github.com/skald-io/skald/tree/main/docs/adr).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >-
+        What you were trying to do, and where Skald got in the way. Describe the
+        situation, not the feature -- the best proposals have been solved by an
+        existing API more than once.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: >-
+        What it would look like to use. Go, ideally: a call site is worth more
+        than a paragraph about it.
+      render: go
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: >-
+        Workarounds, and why they are not good enough. "None" is an acceptable
+        answer if the thing is genuinely impossible today.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: What it touches
+      description: Best guess. A maintainer will correct it if you are wrong.
+      multiple: true
+      options:
+        - Workflow API (pkg/workflow)
+        - Worker (pkg/worker)
+        - Client / CLI (pkg/client, skaldctl)
+        - Wire protocol (pkg/api)
+        - History format (pkg/history) -- permanent, needs an ADR
+        - Persistence (a store driver)
+        - Server operation (flags, telemetry, deployment)
+        - Documentation
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: compat
+    attributes:
+      label: Compatibility
+      options:
+        - label: >-
+            This can be added without changing how an existing history replays.
+        - label: >-
+            This would need a new history event type or command type.
+        - label: >-
+            This would change the wire protocol in a way old clients notice.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: I searched the existing issues and the ADRs.
+          required: true

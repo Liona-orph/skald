@@ -1,0 +1,431 @@
+# golangci-lint configuration for Skald.
+#
+# The selection below is deliberate rather than exhaustive. A linter earns its
+# place here by catching a class of bug this codebase can actually ship: an
+# unchecked error on a write path, a context that stops propagating, an
+# errors.Is comparison that silently stops matching. Linters that mostly
+# generate churn -- style opinions, arbitrary length limits, package-comment
+# police -- are left off, because a gate that people learn to ignore stops
+# gating anything.
+#
+# Run it the way CI does: `make lint`, which fetches this exact version.
+
+run:
+  timeout: 5m
+  tests: true
+  # Build tags used anywhere in the tree must be listed, or the linter analyses
+  # a different program than the compiler does.
+  build-tags: []
+
+output:
+  sort-results: true
+
+linters:
+  disable-all: true
+  enable:
+    # --- correctness -------------------------------------------------------
+    - errcheck        # an ignored error on the append path is how a durable engine loses data
+    - govet           # the vet suite the toolchain ships, including the shadow-free subset
+    - staticcheck     # the deepest analyser here; finds real bugs, not style
+    - gosimple        # the SA-adjacent simplifications, kept separate by staticcheck's authors
+    - ineffassign     # an assignment nobody reads is either dead or a missing use
+    - unused          # unexported symbols nothing calls; the compiler only catches variables
+
+    # errorlint: Skald's error contract is errors.Is/As with wrapped sentinels
+    # (ErrVersionConflict, ErrNotFound). A `==` comparison against a sentinel
+    # compiles, passes its test, and then stops matching the day someone wraps
+    # the error one layer deeper. That is precisely the bug this catches.
+    - errorlint
+
+    # nilerr: `if err != nil { return nil }` -- a check that finds a failure and
+    # then reports success. In an engine whose whole job is to not lose writes,
+    # this is the single worst shape a function can have.
+    - nilerr
+
+    # contextcheck: every blocking path here takes a context, and shutdown
+    # correctness depends on cancellation actually reaching the store. A
+    # function that quietly starts a context.Background() subtree breaks the
+    # drain in a way no test notices until a deploy hangs.
+    - contextcheck
+
+    # bodyclose: pkg/client holds long polls open for fifty seconds. An
+    # unclosed response body does not leak a file descriptor so much as it
+    # leaks a connection out of the pool, and the symptom -- polls slowing
+    # down under load -- looks like a server problem.
+    - bodyclose
+
+    # --- supply chain and safety ------------------------------------------
+    # gosec: this process reads a database file path from configuration and
+    # serves untrusted request bodies. G304 (file inclusion) and the integer
+    # conversion checks are the two that matter; see the exclusions below for
+    # the rules that do not apply to a server with no TLS listener.
+    - gosec
+
+    # --- clarity that is machine-checkable --------------------------------
+    - misspell        # a typo in an exported doc comment is permanent
+    - unconvert       # a redundant conversion usually means the author was unsure of a type
+    - wastedassign    # a value assigned and then overwritten before any read
+    - prealloc        # append-in-loop over a known length; cheap, and the hot paths do it a lot
+    - revive          # the configurable replacement for golint; rules are pinned below
+    - gocritic        # a broad but low-noise checker; the enabled tags are pinned below
+
+    # nolintlint polices the escape hatch. A //nolint with no reason is a
+    # finding somebody hid; one that names no linter hides every future finding
+    # on that line as well. This is what keeps the list above meaningful.
+    - nolintlint
+
+linters-settings:
+  errcheck:
+    # check-type-assertions is off, and this is a deliberate trade rather than
+    # laziness. The unchecked assertions in this tree are all against `any`
+    # coming back out of a standard-library container -- container/list's
+    # Element.Value, container/heap's Push argument, http.DefaultTransport --
+    # where the type was put in by the line above and a mismatch is a bug in
+    # this file, not a runtime condition. The comma-ok form there does not
+    # produce error handling, it produces an `if !ok { panic(...) }` that is
+    # strictly worse than the panic the runtime already gives, which names both
+    # types. Assertions on values that cross a package boundary are covered by
+    # errorlint (for errors) and by the type system everywhere else.
+    check-type-assertions: false
+    # Blank-identifier assignments stay visible: `_ = f()` is an explicit
+    # statement that the author considered the error.
+    check-blank: false
+    exclude-functions:
+      # A deferred Close on a read path. rows.Err() is checked immediately
+      # after every loop in internal/persistence/sqlite, and it reports the
+      # same failure with the query still in scope; the deferred Close can only
+      # add a duplicate. On db.Close in Open's error path there is nowhere to
+      # report to -- Open is already returning the failure that matters.
+      - (*database/sql.Rows).Close
+      - (*database/sql.Stmt).Close
+      - (*database/sql.DB).Close
+      # A failed write to an already-failed HTTP response has nowhere to go: the
+      # status line is sent, the client is gone, and the only honest handling is
+      # to stop. Logging it would produce a second error for one event.
+      - (net/http.ResponseWriter).Write
+      # fmt.Fprint* to os.Stdout/os.Stderr in the two commands. A CLI that
+      # cannot write to its own stdout has already lost.
+      - fmt.Fprint
+      - fmt.Fprintf
+      - fmt.Fprintln
+
+  govet:
+    enable-all: true
+    disable:
+      # fieldalignment reorders struct fields for padding. The structs here are
+      # ordered to be read -- history event attributes mirror the wire format --
+      # and a handful of bytes per struct is not worth losing that.
+      - fieldalignment
+      # shadow fires on the idiomatic `if err := f(); err != nil` nesting that
+      # this codebase uses everywhere, and its true positives are the ones
+      # ineffassign already reports.
+      - shadow
+
+  staticcheck:
+    checks:
+      - "all"
+      # ST1000 demands a package comment in a specific format. Every package
+      # here has one; several are in doc.go and several are essays. The check
+      # disagrees with both, and it is the only staticcheck rule that has ever
+      # been wrong about this tree.
+      - "-ST1000"
+
+  gosec:
+    excludes:
+      # G104 duplicates errcheck, with worse messages and no exclude list.
+      - G104
+      # G404 flags math/rand. The simulator and the retry jitter both need a
+      # *reproducible* sequence from a seed -- that is the entire point of
+      # internal/simulation and of recording jitter in history (ADR 0007).
+      # crypto/rand would make the simulator non-deterministic, which is the
+      # property the test suite is built on.
+      - G404
+      # G114 wants http.Server timeouts set via ListenAndServe wrappers.
+      # internal/frontend builds its own http.Server with every timeout set
+      # explicitly; the check cannot see that.
+      - G114
+      # G115 flags every integer conversion that could in principle truncate.
+      # Every occurrence in this tree is one of two deliberate shapes:
+      #
+      #   - a splitmix64 PRNG reinterpreting int64 <-> uint64. The whole point
+      #     of internal/execution/random.go and of deterministicSource is that
+      #     the bits round-trip; masking to MaxInt64 where a non-negative value
+      #     is required is already done at each site.
+      #   - a small enum widened by SQLite's driver, which returns every
+      #     integer column as int64: persistence.TimerKind and
+      #     skald.WorkflowStatus are int32 with fewer than a dozen values, and
+      #     the column that holds them is written by this same package.
+      #
+      # The check has no way to see either invariant, and there is no narrower
+      # form of it. Genuine width bugs in this codebase would be caught by the
+      # store's round-trip conformance suite, which asserts on the value rather
+      # than on the conversion.
+      - G115
+    config:
+      # G302/G306: the SQLite file and its WAL are written by this process for
+      # this process. 0600 is the intent; the default the check wants (0600 for
+      # files, 0750 for dirs) is what the code already does.
+      G306: "0600"
+
+  revive:
+    # Rules are listed explicitly. revive's default set is roughly golint's,
+    # which includes checks this codebase deliberately violates (stuttering
+    # names like history.HistoryEvent do not exist here, but exported symbols
+    # with essay-length comments do, and the default config complains about the
+    # ones that start with a lowercase word).
+    severity: error
+    enable-all-rules: false
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+        arguments:
+          # workflow.Context is deterministic-replay's context and is not a
+          # context.Context; it legitimately appears as the first argument.
+          - allowTypesBefore: "*testing.T"
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return          # error is the last return value
+      - name: error-strings         # no capitals, no trailing punctuation
+      - name: error-naming          # ErrFoo, errFoo
+      - name: errorf                # errors.New(fmt.Sprintf(...)) -> fmt.Errorf
+      # `exported` is deliberately absent, and this is the one omission worth
+      # arguing for. It demands a doc comment on every exported symbol in the
+      # symbol's own name-first form. Applied here it produces 127 findings, and
+      # every one of them is on a symbol that is already documented somewhere
+      # better:
+      #
+      #   - the 25 one-line `Type() EventType` methods in pkg/history, whose
+      #     behaviour is stated once on the EventAttributes interface;
+      #   - the event-type and command-type constant blocks, which are
+      #     documented per family ("Activity tasks: 40-59") because the families
+      #     and the numeric gaps are the thing a reader needs, not 25 restatements
+      #     of the constant's own name;
+      #   - the interface-satisfying methods of unexported types.
+      #
+      # A rule whose true-positive rate is zero on a codebase this heavily
+      # commented is not measuring documentation, it is measuring format. The
+      # convention is enforced in review instead; see CONTRIBUTING.md.
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: range
+      - name: receiver-naming
+      - name: superfluous-else
+      - name: time-naming           # a Duration field named FooTime is a lie
+      - name: unexported-return
+      - name: unreachable-code
+      - name: var-declaration
+      - name: waitgroup-by-value    # a copied WaitGroup never completes
+      - name: unhandled-error
+        arguments:
+          - "fmt.Fprint"
+          - "fmt.Fprintf"
+          - "fmt.Fprintln"
+          # bytes.Buffer.Write and strings.Builder's writers are documented to
+          # always return a nil error; the signature exists to satisfy io.Writer.
+          - "bytes.Buffer.Write"
+          # database/sql.DB.Close appears twice, both in sqlite.Open's error
+          # path: the pool is being discarded because the migration or the
+          # PRAGMA that follows it failed, and that failure is the one being
+          # returned. See the errcheck note above.
+          - "database/sql.DB.Close"
+          - "strings.Builder.WriteString"
+          - "strings.Builder.WriteByte"
+          - "strings.Builder.WriteRune"
+      - name: early-return
+      - name: bool-literal-in-expr
+      - name: identical-branches
+      - name: defer
+        arguments:
+          - ["loop", "return", "recover"]
+
+  gocritic:
+    # The `style` tag is off. It is the only tag here whose findings are
+    # opinions rather than defects, and on this tree it produced exactly one
+    # class of output: rename a parameter named `max`, name the results of a
+    # three-value function, collapse `(dst *string, src *string)`. None of that
+    # is a bug, all of it is churn in files whose naming is deliberate
+    # (`max` is the argument's name in the documentation of the functions that
+    # take it), and a gate that mostly emits opinions is a gate people learn to
+    # skip. diagnostic and performance stay on, because both find defects.
+    enabled-tags:
+      - diagnostic
+      - performance
+    disabled-checks:
+      # exitAfterDefer fires on cmd/skaldctl/main.go, where the deferred
+      # signal.NotifyContext stop is genuinely skipped by os.Exit -- and that is
+      # correct: the process is about to end, releasing the signal handler is
+      # what exiting does, and the alternative (an inner run() returning a code)
+      # buys nothing but a level of indirection. There is one call site and the
+      # comment above it says so.
+      - exitAfterDefer
+      # A one-case type switch documents the intent to grow: internal/engine
+      # switches on effect.Kind, and the second kind is a matter of when, not
+      # whether. Rewriting it to an if now guarantees rewriting it back later.
+      - singleCaseSwitch
+      # `if q = m.queues[key]; q != nil` assigns to a variable declared above
+      # the if on purpose -- the value is used after the block. The suggested
+      # `q :=` would shadow it, which is the bug this rule thinks it prevents.
+      - sloppyReassign
+    settings:
+      hugeParam:
+        # A history.Event is large and is passed by value on purpose: apply() is
+        # a pure function and copying is what makes it one.
+        sizeThreshold: 512
+      rangeValCopy:
+        sizeThreshold: 512
+
+  misspell:
+    # No locale. The prose here is British ("behaviour", "cancelled") while the
+    # vocabulary of the domain is American ("serialized payload", "normalize the
+    # retry policy") because that is what the surrounding ecosystem calls those
+    # things. Pinning either locale turns 40 correct words into findings; with
+    # no locale set, misspell reports only genuine misspellings, which is the
+    # thing worth reporting.
+    locale: ""
+
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+    allow-unused: false
+
+issues:
+  # Defaults hide a set of "common" findings, including several errcheck
+  # exclusions we would rather see. This tree starts from zero exclusions and
+  # adds back only what is justified below.
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # --- tests -------------------------------------------------------------
+    # A test is allowed to be blunt. It runs in a process that exists to fail
+    # loudly, it has no callers to protect, and the alternative to a raw index
+    # or an unchecked Close is boilerplate that hides the assertion.
+    - path: _test\.go
+      linters:
+        - errcheck      # t.Fatal is one line away; a helper's error is checked by the assert
+        - gosec         # G404 seeds, G306 temp files, G101 fake tokens in fixtures
+        - bodyclose     # a response body in a test dies with the test process
+        - contextcheck  # tests legitimately start fresh contexts per case
+        - prealloc      # a slice built in a table-driven test is three elements long
+        - dupl
+        - gocritic
+        # errorlint: a fixture error is constructed and compared in the same
+        # file. There is no wrapping layer between the two for the check to be
+        # right about, and `%v` in a test's failure message is the message.
+        - errorlint
+        # revive: unexported-return on a workflow declared inside a test package
+        # -- the "exported" function is exported only because the worker
+        # registry finds workflows by name via reflection.
+        - revive
+        - unconvert
+
+    # govet's unusedwrite and nilness are correct about the test code they fire
+    # on, and the code is correct too: a test that mutates a value the store
+    # returned, to prove the store handed back a copy, writes a field it never
+    # reads -- the write *is* the assertion -- and a test that asserts on a
+    # panic dereferences a nil map on purpose. Neither has a rewrite that keeps
+    # the test honest, so they are excluded by check name rather than by
+    # switching govet off in tests, which would lose the other twenty analysers.
+    - path: _test\.go
+      text: "(unusedwrite|nilness)"
+      linters:
+        - govet
+
+    # Same test, same deliberate nil map: staticcheck reports the assignment
+    # itself. The test's name is TestExecutorReportsAWorkflowPanicWithItsStack
+    # and the panic is the fixture.
+    - path: _test\.go
+      text: "SA5000"
+      linters:
+        - staticcheck
+
+    # persistencetest is a conformance suite that happens not to be named
+    # _test.go, because it is imported by every driver's real test package.
+    - path: internal/persistence/persistencetest/
+      linters:
+        - errcheck
+        - gosec
+        - prealloc
+
+    # --- the simulator -----------------------------------------------------
+    # internal/simulation is a fault injector. It seeds math/rand from an
+    # explicit seed (that is the whole design: a seed is a reproduction), it
+    # deliberately drops errors it has just injected, and it builds slices whose
+    # length depends on a random walk. Every one of those is a finding in
+    # production code and the intended behaviour here.
+    - path: internal/simulation/
+      linters:
+        - gosec         # G404: a deterministic PRNG is the point
+        - errcheck      # an injected fault's error is asserted on, then discarded
+        - prealloc
+        - contextcheck  # the harness owns the clock and the contexts both
+
+    # --- checks that are wrong about this code ----------------------------
+    # staticcheck's SA5010 does not model generic interface identity across
+    # package boundaries. pkg/workflow's Future[T] and Settable[T] are aliases
+    # for internal/workflow's, declared so that user code never imports an
+    # internal package; the assertions between them are how the public wrapper
+    # unwraps to the implementation. The check's own message gives it away --
+    # it prints "have func(...) want func(...)" with two identical signatures.
+    # The code compiles, and pkg/workflow/workflow_test.go asserts the
+    # round-trip it claims is impossible.
+    - path: pkg/workflow/
+      text: "SA5010"
+      linters:
+        - staticcheck
+
+    # contextcheck cannot follow a context through a helper. Every finding in
+    # internal/frontend is a poll context built by Server.pollContext, which is
+    # `context.WithTimeout(r.Context(), maxPoll)` plus a goroutine that cancels
+    # it on drain -- inherited from the request, exactly as the check wants,
+    # one function call away from where it is looking. The two findings in the
+    # closures of middleware.go are the same shape: r.Context() read inside a
+    # deferred func the check treats as detached.
+    - path: internal/frontend/
+      linters:
+        - contextcheck
+
+    # G101 fires on the const blocks that name environment variables. The
+    # values are the *names* -- "SKALD_AUTH_TOKEN" -- which is the opposite of
+    # a hardcoded credential: they exist so that the token never appears in the
+    # source at all. Both blocks are the documented answer to "what can I set".
+    - path: (cmd/skaldd/config\.go|cmd/skaldctl/commands/root\.go)
+      text: "G101"
+      linters:
+        - gosec
+
+    # G304 fires twice, both on a path the operator typed: `skaldctl workflow
+    # history --input <file>` and worker.ReplayHistoryFile. A tool whose
+    # argument is a filename cannot validate its way out of opening that
+    # filename, and both run with the caller's own privileges.
+    - path: (cmd/skaldctl/commands/history\.go|pkg/worker/replayer\.go)
+      text: "G304"
+      linters:
+        - gosec
+
+    # --- generated and vendored -------------------------------------------
+    - path: (^|/)vendor/
+      linters:
+        - staticcheck
+        - gosimple
+        - unused
+
+    # revive's exported-symbol rule on main packages: `main` has no importers,
+    # so an exported identifier in cmd/ is exported only because the linker
+    # needs it (the -X build variables) or because a test in the same package
+    # uses it.
+    - path: cmd/
+      text: "exported (type|method|function|const|var) .* should have comment"
+      linters:
+        - revive
+
+  # A new linter release must not turn a green branch red on a Friday. Findings
+  # in code nobody touched stay visible in `make lint`, but CI gates on the diff
+  # for pull requests; see .github/workflows/ci.yml.
+  new: false
