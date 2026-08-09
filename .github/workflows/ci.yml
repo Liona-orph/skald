@@ -55,17 +55,17 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # Must match GOLANGCI_VERSION in the Makefile. The released 1.62.2
+      # binary was built with Go 1.23 and refuses a Go 1.25 module, so install
+      # this exact pinned version with the job's compiler instead.
+      - name: Install golangci-lint
+        run: |
+          mkdir -p "$RUNNER_TEMP/golangci-lint"
+          GOBIN="$RUNNER_TEMP/golangci-lint" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
-        with:
-          # Must match GOLANGCI_VERSION in the Makefile: a contributor whose
-          # local `make lint` disagrees with CI stops trusting either.
-          version: v1.62.2
-          # The released 1.62.2 binary was built with Go 1.23 and refuses a
-          # Go 1.25 module. Building this exact pinned version in the job
-          # preserves the lint policy while matching the project toolchain.
-          install-mode: go
-          args: --timeout=5m
+        run: |
+          "$RUNNER_TEMP/golangci-lint/golangci-lint" run --timeout=5m
 
       - name: go mod tidy is a no-op
         run: |
