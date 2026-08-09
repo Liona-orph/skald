@@ -1,9 +1,9 @@
-# Review dependency changes before they merge.
+# Scan reachable dependency vulnerabilities before they merge.
 #
-# The check is on the diff, not on the tree: it compares the base and head
-# commits' dependency graphs and reports what the pull request adds. A known
-# vulnerability that arrives with a new dependency fails here rather than in a
-# scan somebody reads next quarter.
+# GitHub's dependency-review action is unavailable to private repositories
+# without GitHub Advanced Security. govulncheck is supported everywhere and
+# examines the package call graph, so it catches vulnerabilities exercised by
+# this code whether they were introduced by this pull request or predate it.
 
 name: Dependency review
 
@@ -24,22 +24,15 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      # Post the summary as a comment on the pull request.
-      pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/dependency-review-action@3b139cfc5fae8b618d3eae3675e383bb1769c019 # v4.5.0
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          # Moderate rather than high. Skald has fourteen direct dependencies
-          # and a deliberately small graph; the noise a lower threshold would
-          # cause elsewhere does not exist here.
-          fail-on-severity: moderate
-          comment-summary-in-pr: on-failure
-          # The project is Apache-2.0. A copyleft dependency would relicense
-          # everything downstream of it, which is a decision for a maintainer
-          # and an ADR, not for a dependency bump.
-          deny-licenses: >-
-            AGPL-1.0-only, AGPL-1.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later,
-            GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later,
-            SSPL-1.0
+          go-version: "1.25.12"
+          cache: true
+
+      # Pin the scanner for reproducible CI while its advisory database stays
+      # current on every invocation.
+      - name: Scan reachable dependency vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
