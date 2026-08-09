@@ -15,7 +15,7 @@
 # BuildKit is required (the cache mounts and the heredocs below). It is the
 # default in every Docker release since 23.0.
 
-ARG GO_VERSION=1.23
+ARG GO_VERSION=1.25.12
 
 # ---------------------------------------------------------------------------
 # Build
@@ -77,7 +77,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY <<'EOF' /probe/go.mod
 module probe
 
-go 1.23
+go 1.25.0
 EOF
 COPY <<'EOF' /probe/main.go
 package main

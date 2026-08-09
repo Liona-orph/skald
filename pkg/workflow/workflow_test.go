@@ -13,12 +13,11 @@ import (
 // TestPublicInterfacesAreStructurallyIdenticalToTheInternalOnes is the test that
 // justifies the duplicated interface declarations in this package.
 //
-// Go 1.23 has no generic type aliases, so Future, Settable and the channel
-// interfaces have to be re-declared here rather than aliased from
-// internal/workflow. That is only safe if the two declarations have identical
-// method sets, in which case values cross the boundary with no conversion and no
-// wrapper. This test fails to compile the moment they drift apart, which is
-// exactly when someone needs to be told.
+// Future, Settable and the channel interfaces are deliberately re-declared here
+// rather than aliased from internal/workflow. That is only safe if the two
+// declarations have identical method sets, in which case values cross the
+// boundary with no conversion and no wrapper. This test fails to compile the
+// moment they drift apart, which is exactly when someone needs to be told.
 func TestPublicInterfacesAreStructurallyIdenticalToTheInternalOnes(t *testing.T) {
 	t.Parallel()
 
