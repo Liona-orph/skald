@@ -61,6 +61,10 @@ jobs:
           # Must match GOLANGCI_VERSION in the Makefile: a contributor whose
           # local `make lint` disagrees with CI stops trusting either.
           version: v1.62.2
+          # The released 1.62.2 binary was built with Go 1.23 and refuses a
+          # Go 1.25 module. Building this exact pinned version in the job
+          # preserves the lint policy while matching the project toolchain.
+          install-mode: go
           args: --timeout=5m
 
       - name: go mod tidy is a no-op
