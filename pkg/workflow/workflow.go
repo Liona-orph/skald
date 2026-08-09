@@ -16,10 +16,10 @@ import (
 // Types
 //
 // Future, Settable and the channel interfaces are declared here rather than
-// aliased from the internal package because Go 1.23 has no generic type
-// aliases. They are byte-for-byte the same method sets as their internal
-// counterparts, so values flow between the two packages with no conversion and
-// no wrapper allocation; the duplication is a language limitation, not a design.
+// aliased from the internal package so the public API does not expose internal
+// implementation types. They are byte-for-byte the same method sets as their
+// internal counterparts, so values flow between the two packages with no
+// conversion and no wrapper allocation.
 // ---------------------------------------------------------------------------
 
 // Future is the result of an operation that has not finished yet.
@@ -107,8 +107,8 @@ func NewFuture[T any](ctx Context) (Future[T], Settable[T]) {
 // ChainFuture resolves target from source when source settles.
 //
 // It is a free function rather than a method on Settable because a method whose
-// parameter is a generic interface cannot be shared between two packages without
-// generic type aliases, which Go 1.23 lacks.
+// parameter is a generic interface and the public API deliberately does not
+// expose the internal implementation types.
 func ChainFuture[T any](target Settable[T], source Future[T]) {
 	s, ok := target.(internalwf.Settable[T])
 	if !ok {
