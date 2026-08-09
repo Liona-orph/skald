@@ -40,7 +40,7 @@ jobs:
 
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: "1.23"
+          go-version: "1.25.12"
           cache: true
 
       # The matrix is built from the tree rather than written down, so adding a
@@ -82,7 +82,7 @@ jobs:
 
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: "1.23"
+          go-version: "1.25.12"
           cache: true
 
       # Go writes the generated corpus under $GOCACHE/fuzz. Restoring it is
@@ -100,7 +100,7 @@ jobs:
           go test "${{ matrix.pkg }}" \
             -run '^$' \
             -fuzz '^${{ matrix.target }}$' \
-            -fuzztime '${{ inputs.fuzztime || ''30m'' }}'
+            -fuzztime "${{ inputs.fuzztime || '30m' }}"
 
       # A crasher is written to testdata/fuzz/<Target>/ next to the test. It is
       # the reproduction, and it belongs in the repository -- so it is uploaded
