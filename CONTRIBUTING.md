@@ -22,7 +22,7 @@ optional field is routine; changing or removing one is not.
 
 ## Development setup
 
-You need **Go 1.23 or later** and nothing else. No C toolchain (the SQLite
+You need **Go 1.25.12 or later** and nothing else. No C toolchain (the SQLite
 driver is pure Go), no code generation, no protobuf.
 
 ```bash

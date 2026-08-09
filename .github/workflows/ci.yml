@@ -29,7 +29,7 @@ env:
   # The version the module targets. The matrix below also tests the previous
   # minor, because a library that only builds on the newest Go is a library
   # nobody can adopt mid-quarter.
-  GO_VERSION: "1.23"
+  GO_VERSION: "1.25.12"
 
 jobs:
   lint:
@@ -55,13 +55,17 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # Must match GOLANGCI_VERSION in the Makefile. The released 1.62.2
+      # binary was built with Go 1.23 and refuses a Go 1.25 module, so install
+      # this exact pinned version with the job's compiler instead.
+      - name: Install golangci-lint
+        run: |
+          mkdir -p "$RUNNER_TEMP/golangci-lint"
+          GOBIN="$RUNNER_TEMP/golangci-lint" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
-        with:
-          # Must match GOLANGCI_VERSION in the Makefile: a contributor whose
-          # local `make lint` disagrees with CI stops trusting either.
-          version: v1.62.2
-          args: --timeout=5m
+        run: |
+          "$RUNNER_TEMP/golangci-lint/golangci-lint" run --timeout=5m
 
       - name: go mod tidy is a no-op
         run: |
@@ -74,13 +78,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # go.mod declares `go 1.23`, so the 1.22 cell exercises the path a
+        # go.mod declares `go 1.25`, so the 1.24 cell exercises the path a
         # contributor on the previous minor actually takes: the toolchain
-        # directive resolves, Go fetches 1.23 and builds with it. It is a real
+        # directive resolves, Go fetches 1.25.12 and builds with it. It is a real
         # check -- it fails the day something makes that resolution impossible,
-        # which is the day 1.22 users are locked out -- and it becomes a second
+        # which is the day 1.24 users are locked out -- and it becomes a second
         # compiler the moment the go directive drops below the newest release.
-        go: ["1.22", "1.23"]
+        go: ["1.24", "1.25.12"]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -103,7 +107,7 @@ jobs:
         run: go tool cover -func=coverage.out | tail -n 1
 
       - name: Upload coverage
-        if: matrix.go == '1.23'
+        if: matrix.go == '1.25.12'
         uses: codecov/codecov-action@015f24e6818733317a2da2edd6290ab26238649a # v5.0.7
         with:
           files: coverage.out

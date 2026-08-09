@@ -54,7 +54,7 @@ That function survives every process in the system dying at any instruction.
 
 ## 60-second quickstart
 
-Requires Go 1.23 or later.
+Requires Go 1.25.12 or later.
 
 ```bash
 go install github.com/skald-io/skald/cmd/skaldd@latest

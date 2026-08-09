@@ -180,7 +180,7 @@ examples: ## Build and run every program under examples/
 
 $(GOLANGCI):
 	@mkdir -p $(BIN)
-	GOBIN=$(CURDIR)/$(BIN) $(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION)
+	GOBIN="$(CURDIR)/$(BIN)" $(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
 .PHONY: lint
 lint: $(GOLANGCI) ## Run golangci-lint (fetches the pinned version into ./bin)
