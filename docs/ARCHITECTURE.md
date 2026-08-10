@@ -703,7 +703,7 @@ exponentially, so a struggling database is not scanned harder for being slow.
 | **Activity is not idempotent and is retried** | It runs twice. | Skald guarantees at-least-once activity execution, not exactly-once. Make activities idempotent; the activity ID and the scheduled event ID are stable keys to do it with. |
 | **`skaldd` dies between commit and dispatch** | The task reference is lost from matching. Recovery re-materialises it at startup; before that, an activity's `schedule-to-start` or the workflow task's deadline covers it. | Latency only. |
 | **`skaldd` dies mid-transaction** | The store transaction is atomic; nothing partial is visible. | The un-acknowledged request. Clients retry, and `request_id` makes a repeated start idempotent. |
-| **`skaldd` dies between closing a run and creating its successor** | The chain has a dangling link: the predecessor is `CONTINUED_AS_NEW` or `FAILED` with `RetryStateInProgress`, and no successor exists. | The successor. Nothing retries it automatically; a repeat attempt would be collapsed by the derived request ID. This is a known gap. |
+ **`skaldd` dies between closing a run and creating its successor** | It cannot: the successor is created inside the same store transaction that closes the predecessor, through `AppendHistoryRequest.CreateSuccessor`. Either both are durable or neither is. | Nothing. |
 | **Store is unreachable** | Every mutating request fails with `unavailable` (503). `/ready` fails, so a load balancer stops routing here. `/health` keeps reporting live, on purpose: restarting the process does not fix a database, and a restart throws away every in-flight long poll. | Availability, not data. |
 | **Store loses the last committed transactions (power cut, `synchronous=NORMAL`)** | Those transactions un-happen. | Only work no client was told about: Skald acknowledges after commit returns. |
 | **Timer scan fails repeatedly** | The loop backs off exponentially to `MaxBackoff` and logs each failure with a consecutive-failure count. Timers stay in the index. | Timer latency. Nothing is dropped. |
@@ -741,8 +741,8 @@ API exists.
 commands, five or six event types in the reserved range, parent-child links in
 `MutableState`, and a rule for what happens to children when the parent closes
 (abandon, cancel, terminate). The engine's write path already handles creating a
-second run in the same operation, via `startSuccessor`, which is the closest
-existing analogue — including its transactional gap.
+second run inside the transaction that closes the first, via
+`AppendHistoryRequest.CreateSuccessor`, which is the closest existing analogue.
 
 ### No cron scheduling
 
@@ -771,19 +771,23 @@ executions row updated in the same transaction, or add a compact
 `ActivityAttemptFailed` event written only every Nth attempt so the counter is
 bounded but recoverable. The third is probably right.
 
-### Successor creation is a second transaction
+### Successor creation used to be a second transaction
 
-**Now.** Closing a run and creating its successor are two `Store` calls. A crash
-in between leaves a dangling link; the derived request ID makes a repeat
-idempotent, but nothing retries automatically.
+**Then.** Closing a run and creating its successor were two `Store` calls. A
+crash in between left the predecessor `CONTINUED_AS_NEW`, the successor named by
+its final event absent, and the logical workflow stranded while the console
+still showed it progressing. The derived request ID made a repeat attempt
+idempotent, but nothing retried automatically.
 
-**To fix.** A store primitive that closes one run and opens another atomically —
-`CloseAndCreate(closeReq, createReq)`. It is a small addition to the interface
-and a straightforward one for both drivers. It was left out because it is the
-only operation that would need it, and adding a two-run primitive to a
-single-run interface for one caller is a real cost. A cheaper partial fix is a
-sweeper that looks for runs closed with `RetryStateInProgress` or
-`CONTINUED_AS_NEW` whose successor does not exist, and creates it.
+**Found by.** The deterministic simulator, at seed 5. No hand-written test would
+have produced that interleaving, because it needs a fault to land in a window
+one store round trip wide.
+
+**Now.** `AppendHistoryRequest.CreateSuccessor` carries the successor's creation
+into the transaction that closes the predecessor. Both drivers implement it and
+the persistence conformance suite covers it, including the case where an
+unusable successor must leave the predecessor's events unwritten. The seed is in
+the regression table in `internal/simulation`.
 
 ### Task ownership is checked by identity
 
