@@ -283,15 +283,6 @@ statement "attempt N is due at T and has not started", and the engine trusts it
 over the rebuilt state. It works, and it means the timer index is not purely a
 performance cache: losing it loses the attempt counter.
 
-**Creating a successor run is a second transaction.** Closing a run
-(continue-as-new, or a workflow-level retry) commits first; creating its
-successor is a separate `CreateExecution`. A process that dies in between leaves
-a chain with a dangling link. The successor's request ID is derived from the
-predecessor's run ID, so a repeat attempt is collapsed by the store rather than
-producing two runs — but nothing retries it automatically. Closing the window
-needs a store primitive that closes one run and opens another atomically, which
-`persistence.Store` deliberately does not have.
-
 **Workflow task ownership is checked by identity, not by token.**
 `RespondWorkflowTaskCompleted` carries no started-event ID, so when a task times
 out and a replacement is started elsewhere, the only discriminator against the
