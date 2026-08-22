@@ -45,7 +45,7 @@ jobs:
 
       - name: gofmt
         run: |
-          unformatted=$(gofmt -s -l $(find . -name '*.go' -not -path './.git/*'))
+          unformatted=$(find . -name '*.go' -not -path './.git/*' -exec gofmt -s -l {} +)
           if [ -n "$unformatted" ]; then
             echo "::error::not gofmt -s clean"
             echo "$unformatted"
@@ -78,13 +78,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # go.mod declares `go 1.25`, so the 1.24 cell exercises the path a
-        # contributor on the previous minor actually takes: the toolchain
-        # directive resolves, Go fetches 1.25.12 and builds with it. It is a real
-        # check -- it fails the day something makes that resolution impossible,
-        # which is the day 1.24 users are locked out -- and it becomes a second
-        # compiler the moment the go directive drops below the newest release.
-        go: ["1.24", "1.25.12"]
+        # Exercise the pinned minimum and the current release. Versions below
+        # the go.mod floor are unsupported and cannot build with GOTOOLCHAIN=local.
+        go: ["1.25.12", "1.26"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -107,7 +103,7 @@ jobs:
         run: go tool cover -func=coverage.out | tail -n 1
 
       - name: Upload coverage
-        if: matrix.go == '1.25.12'
+        if: matrix.go == '1.26'
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: coverage.out
