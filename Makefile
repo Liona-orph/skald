@@ -11,7 +11,7 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-MODULE := github.com/skald-io/skald
+MODULE := github.com/Liona-orph/skald
 BIN    := bin
 DIST   := dist
 
@@ -68,7 +68,7 @@ FUZZTIME  ?= 30s
 SIM_SEEDS ?= 300
 SIM_FLAGS ?=
 
-IMAGE     ?= ghcr.io/skald-io/skald
+IMAGE     ?= ghcr.io/Liona-orph/skald
 IMAGE_TAG ?= $(VERSION)
 
 .PHONY: help

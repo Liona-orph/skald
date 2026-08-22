@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // CommandType identifies an instruction produced by workflow code.

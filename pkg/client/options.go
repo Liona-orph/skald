@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Defaults. Every one of them is overridable, and every one of them is a number

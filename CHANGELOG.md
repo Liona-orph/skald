@@ -187,5 +187,5 @@ Stated here so a reader of the changelog alone is not misled. Details in the
 - Local activities do not retry.
 - No TLS, no authorization, no retention or archival.
 
-[Unreleased]: https://github.com/skald-io/skald/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/skald-io/skald/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Liona-orph/skald/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Liona-orph/skald/releases/tag/v0.1.0

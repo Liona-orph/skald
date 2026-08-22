@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // fastRetries makes a test's retries take microseconds instead of seconds while

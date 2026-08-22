@@ -23,13 +23,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skald-io/skald/internal/engine"
-	"github.com/skald-io/skald/internal/frontend"
-	"github.com/skald-io/skald/internal/matching"
-	"github.com/skald-io/skald/internal/persistence"
-	"github.com/skald-io/skald/internal/persistence/memory"
-	"github.com/skald-io/skald/internal/persistence/sqlite"
-	"github.com/skald-io/skald/internal/telemetry"
+	"github.com/Liona-orph/skald/internal/engine"
+	"github.com/Liona-orph/skald/internal/frontend"
+	"github.com/Liona-orph/skald/internal/matching"
+	"github.com/Liona-orph/skald/internal/persistence"
+	"github.com/Liona-orph/skald/internal/persistence/memory"
+	"github.com/Liona-orph/skald/internal/persistence/sqlite"
+	"github.com/Liona-orph/skald/internal/telemetry"
 )
 
 // Build information, injected at link time:

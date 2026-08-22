@@ -11,10 +11,10 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
-	"github.com/skald-io/skald/internal/clock"
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/internal/clock"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // DefaultDeadlockTimeout bounds one call into workflow code.

@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 // TestErrorMappingOverTheWire drives every api error code through a real

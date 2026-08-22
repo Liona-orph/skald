@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skald-io/skald/internal/clock"
+	"github.com/Liona-orph/skald/internal/clock"
 )
 
 var epoch = time.Date(2024, time.March, 1, 12, 0, 0, 0, time.UTC)

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skald-io/skald/internal/persistence"
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/internal/persistence"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // fakeStore is a deliberately small, deliberately strict in-memory

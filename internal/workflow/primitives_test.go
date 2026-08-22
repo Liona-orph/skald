@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // ---------------------------------------------------------------------------

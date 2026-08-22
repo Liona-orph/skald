@@ -22,7 +22,7 @@ services:
         VERSION: ${SKALD_VERSION:-dev}
         COMMIT: ${SKALD_COMMIT:-none}
         BUILD_DATE: ${SKALD_BUILD_DATE:-unknown}
-    image: ghcr.io/skald-io/skald:${SKALD_VERSION:-dev}
+    image: ghcr.io/Liona-orph/skald:${SKALD_VERSION:-dev}
     restart: unless-stopped
     ports:
       # Bound to loopback. An engine with no auth token on 0.0.0.0 is a remote

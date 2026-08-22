@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Column widths for the history view.

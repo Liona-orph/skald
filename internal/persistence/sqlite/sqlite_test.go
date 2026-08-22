@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 
-	"github.com/skald-io/skald/internal/persistence"
-	"github.com/skald-io/skald/internal/persistence/persistencetest"
-	"github.com/skald-io/skald/internal/persistence/sqlite"
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/internal/persistence"
+	"github.com/Liona-orph/skald/internal/persistence/persistencetest"
+	"github.com/Liona-orph/skald/internal/persistence/sqlite"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // newStore opens a store on a fresh file. A file, not ":memory:": WAL, the

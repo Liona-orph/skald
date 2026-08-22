@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // fixedNow is the clock every rendering test uses, so relative timestamps are

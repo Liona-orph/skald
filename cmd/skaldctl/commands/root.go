@@ -24,8 +24,8 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
-	"github.com/skald-io/skald/pkg/client"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/client"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Environment variables the CLI reads. Flags win over them.

@@ -14,7 +14,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/skald-io/skald/cmd/skaldctl/commands"
+	"github.com/Liona-orph/skald/cmd/skaldctl/commands"
 )
 
 func main() {

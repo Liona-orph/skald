@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/skald"
-	"github.com/skald-io/skald/pkg/workflow"
+	"github.com/Liona-orph/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/workflow"
 )
 
 // The registry's job is to turn a class of 3am incidents into a startup error.

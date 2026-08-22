@@ -12,8 +12,8 @@ package api
 import (
 	"time"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Version is the protocol version, sent in the Skald-Protocol-Version header.

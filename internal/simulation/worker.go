@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	internalwf "github.com/skald-io/skald/internal/workflow"
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
-	"github.com/skald-io/skald/pkg/worker"
+	internalwf "github.com/Liona-orph/skald/internal/workflow"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/worker"
 )
 
 // simWorker is one worker process, minus its poll loop.

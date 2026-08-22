@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	internalwf "github.com/skald-io/skald/internal/workflow"
-	"github.com/skald-io/skald/pkg/skald"
+	internalwf "github.com/Liona-orph/skald/internal/workflow"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // TestPublicInterfacesAreStructurallyIdenticalToTheInternalOnes is the test that

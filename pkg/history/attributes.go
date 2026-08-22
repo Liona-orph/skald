@@ -3,7 +3,7 @@ package history
 import (
 	"time"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Attributes is the payload of a history event. Every implementation is a

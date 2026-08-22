@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 // backoff is the exponential retry delay used after poll failures.

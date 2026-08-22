@@ -13,10 +13,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/client"
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/client"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // runCLI executes the command tree with a client factory that refuses to build.

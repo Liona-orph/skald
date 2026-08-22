@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/skald-io/skald/internal/frontend"
-	"github.com/skald-io/skald/internal/telemetry"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/internal/frontend"
+	"github.com/Liona-orph/skald/internal/telemetry"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Store drivers.

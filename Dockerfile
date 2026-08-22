@@ -9,8 +9,8 @@
 # setuid binaries -- a filesystem containing the two things this process needs
 # and nothing an attacker who reaches RCE could pivot through.
 #
-#   docker build -t ghcr.io/skald-io/skald:dev .
-#   docker run --rm -p 7233:7233 ghcr.io/skald-io/skald:dev
+#   docker build -t ghcr.io/Liona-orph/skald:dev .
+#   docker run --rm -p 7233:7233 ghcr.io/Liona-orph/skald:dev
 #
 # BuildKit is required (the cache mounts and the heredocs below). It is the
 # default in every Docker release since 23.0.
@@ -58,9 +58,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -trimpath \
       -ldflags "-s -w \
-        -X github.com/skald-io/skald/cmd/skaldctl/commands.version=${VERSION} \
-        -X github.com/skald-io/skald/cmd/skaldctl/commands.commit=${COMMIT} \
-        -X github.com/skald-io/skald/cmd/skaldctl/commands.buildDate=${BUILD_DATE}" \
+        -X github.com/Liona-orph/skald/cmd/skaldctl/commands.version=${VERSION} \
+        -X github.com/Liona-orph/skald/cmd/skaldctl/commands.commit=${COMMIT} \
+        -X github.com/Liona-orph/skald/cmd/skaldctl/commands.buildDate=${BUILD_DATE}" \
       -o /out/skaldctl ./cmd/skaldctl
 
 # The health probe.
@@ -126,10 +126,10 @@ ARG BUILD_DATE=unknown
 # https://github.com/opencontainers/image-spec/blob/main/annotations.md
 LABEL org.opencontainers.image.title="skald" \
       org.opencontainers.image.description="A durable workflow execution engine for Go." \
-      org.opencontainers.image.source="https://github.com/skald-io/skald" \
-      org.opencontainers.image.documentation="https://github.com/skald-io/skald/blob/main/docs/operations.md" \
+      org.opencontainers.image.source="https://github.com/Liona-orph/skald" \
+      org.opencontainers.image.documentation="https://github.com/Liona-orph/skald/blob/main/docs/operations.md" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.vendor="skald-io" \
+      org.opencontainers.image.vendor="Liona-orph" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}" \

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	internalwf "github.com/skald-io/skald/internal/workflow"
-	"github.com/skald-io/skald/pkg/skald"
-	"github.com/skald-io/skald/pkg/workflow"
+	internalwf "github.com/Liona-orph/skald/internal/workflow"
+	"github.com/Liona-orph/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/workflow"
 )
 
 // ErrNotRegistered is returned when a task names a type this worker does not

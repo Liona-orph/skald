@@ -34,8 +34,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skald-io/skald/internal/telemetry"
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/internal/telemetry"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 // Defaults for Config.

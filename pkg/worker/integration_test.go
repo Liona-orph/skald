@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
-	"github.com/skald-io/skald/pkg/workflow"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/workflow"
 )
 
 // These are end-to-end tests: a real engine over a real store, a real worker,

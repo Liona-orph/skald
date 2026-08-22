@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // FunctionName derives the registered name of a workflow or activity from the

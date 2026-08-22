@@ -49,8 +49,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/skald-io/skald/internal/clock"
-	"github.com/skald-io/skald/internal/persistence"
+	"github.com/Liona-orph/skald/internal/clock"
+	"github.com/Liona-orph/skald/internal/persistence"
 )
 
 // Dispatch is the callback invoked for one due timer.

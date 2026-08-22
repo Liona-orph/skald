@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // SDK identity, recorded on every workflow task completion so that a history can

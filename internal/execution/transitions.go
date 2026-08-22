@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Effect describes work the engine must hand to another subsystem after the

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skald-io/skald/pkg/skald"
-	"github.com/skald-io/skald/pkg/workflow"
+	"github.com/Liona-orph/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/workflow"
 )
 
 // The workflows the simulator runs.

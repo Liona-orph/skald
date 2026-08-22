@@ -46,7 +46,7 @@
 package workflow
 
 import (
-	internalwf "github.com/skald-io/skald/internal/workflow"
+	internalwf "github.com/Liona-orph/skald/internal/workflow"
 )
 
 // Context is the workflow-side context. See internal documentation for why it

@@ -5,11 +5,11 @@ function, and the engine guarantees it runs to completion across process
 crashes, deploys and multi-day waits, replaying it from an append-only event
 history instead of asking you to build your own state machine.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/skald-io/skald/ci.yml?branch=main&label=ci)](https://github.com/skald-io/skald/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/skald-io/skald)](https://goreportcard.com/report/github.com/skald-io/skald)
-[![Coverage](https://img.shields.io/codecov/c/github/skald-io/skald?token=)](https://codecov.io/gh/skald-io/skald)
+[![CI](https://img.shields.io/github/actions/workflow/status/Liona-orph/skald/ci.yml?branch=main&label=ci)](https://github.com/Liona-orph/skald/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Liona-orph/skald)](https://goreportcard.com/report/github.com/Liona-orph/skald)
+[![Coverage](https://img.shields.io/codecov/c/github/Liona-orph/skald?token=)](https://codecov.io/gh/Liona-orph/skald)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/skald-io/skald)](go.mod)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/Liona-orph/skald)](go.mod)
 
 ## The problem
 
@@ -57,15 +57,15 @@ That function survives every process in the system dying at any instruction.
 Requires Go 1.25.12 or later.
 
 ```bash
-go install github.com/skald-io/skald/cmd/skaldd@latest
-go install github.com/skald-io/skald/cmd/skaldctl@latest
+go install github.com/Liona-orph/skald/cmd/skaldd@latest
+go install github.com/Liona-orph/skald/cmd/skaldctl@latest
 
 # The in-memory store is the default and loses everything on restart.
 # Use SQLite for anything you care about.
 skaldd --store sqlite --sqlite-path ./skald.db
 ```
 
-Then, in a module of your own (`go get github.com/skald-io/skald`):
+Then, in a module of your own (`go get github.com/Liona-orph/skald`):
 
 ```go
 package main
@@ -75,9 +75,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/skald-io/skald/pkg/client"
-	"github.com/skald-io/skald/pkg/worker"
-	"github.com/skald-io/skald/pkg/workflow"
+	"github.com/Liona-orph/skald/pkg/client"
+	"github.com/Liona-orph/skald/pkg/worker"
+	"github.com/Liona-orph/skald/pkg/workflow"
 )
 
 type Order struct {

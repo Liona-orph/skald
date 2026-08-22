@@ -43,8 +43,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Headers the client sets and reads. They mirror the frontend's constants; the

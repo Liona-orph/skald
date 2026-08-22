@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skald-io/skald/internal/clock"
-	"github.com/skald-io/skald/internal/persistence"
-	"github.com/skald-io/skald/internal/timers"
-	"github.com/skald-io/skald/pkg/history"
+	"github.com/Liona-orph/skald/internal/clock"
+	"github.com/Liona-orph/skald/internal/persistence"
+	"github.com/Liona-orph/skald/internal/timers"
+	"github.com/Liona-orph/skald/pkg/history"
 )
 
 // timerStore is a throwaway store that implements only what the timer service

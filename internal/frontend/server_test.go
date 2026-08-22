@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 func TestNewValidatesConfig(t *testing.T) {

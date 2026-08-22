@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skald-io/skald/internal/clock"
+	"github.com/Liona-orph/skald/internal/clock"
 )
 
 // maxUnwindAttempts bounds how many times Close will re-panic a coroutine that

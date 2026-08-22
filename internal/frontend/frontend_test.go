@@ -15,8 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/internal/telemetry"
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/internal/telemetry"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 // stubService is a programmable api.Service.

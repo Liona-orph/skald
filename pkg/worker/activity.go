@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skald-io/skald/pkg/api"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // ActivityInfo describes the attempt an activity is currently serving.

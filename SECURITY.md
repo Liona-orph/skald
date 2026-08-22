@@ -15,13 +15,12 @@ When 1.0 ships, this table becomes "the current minor and the one before it".
 
 **Do not open a public issue.**
 
-Report privately through either channel:
+Report privately through GitHub Security Advisories:
 
 - **GitHub Security Advisories** — the [Report a
-  vulnerability](https://github.com/skald-io/skald/security/advisories/new)
+  vulnerability](https://github.com/Liona-orph/skald/security/advisories/new)
   form. Preferred: it creates a private fork for the fix and handles the CVE
   request.
-- **Email** — `security@skald.io`.
 
 Please include:
 

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skald-io/skald/internal/persistence"
-	"github.com/skald-io/skald/pkg/history"
+	"github.com/Liona-orph/skald/internal/persistence"
+	"github.com/Liona-orph/skald/pkg/history"
 )
 
 // ErrInjected marks a failure the simulator produced on purpose.

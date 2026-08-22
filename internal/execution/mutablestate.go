@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skald-io/skald/pkg/history"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/pkg/history"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // ErrStateTransition is the sentinel for every illegal state advance.

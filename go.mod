@@ -1,4 +1,4 @@
-module github.com/skald-io/skald
+module github.com/Liona-orph/skald
 
 go 1.25.0
 

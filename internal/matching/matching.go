@@ -38,8 +38,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/skald-io/skald/internal/clock"
-	"github.com/skald-io/skald/pkg/skald"
+	"github.com/Liona-orph/skald/internal/clock"
+	"github.com/Liona-orph/skald/pkg/skald"
 )
 
 // Kind separates workflow work from activity work.

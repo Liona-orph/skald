@@ -26,7 +26,7 @@ You need **Go 1.25.12 or later** and nothing else. No C toolchain (the SQLite
 driver is pure Go), no code generation, no protobuf.
 
 ```bash
-git clone https://github.com/skald-io/skald.git
+git clone https://github.com/Liona-orph/skald.git
 cd skald
 make ci        # the whole gate: fmt, vet, lint, race tests, build
 ```

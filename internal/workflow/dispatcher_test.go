@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/skald-io/skald/internal/clock"
+	"github.com/Liona-orph/skald/internal/clock"
 )
 
 // newTestDispatcher returns a dispatcher and its root context. The environment

@@ -1,42 +1,42 @@
 # Code owners are requested for review automatically. The later a rule appears,
 # the higher its precedence: the last matching rule wins.
 
-*                               @skald-io/maintainers
+*                               @Liona-orph
 
 # The persisted format. A change here is close to irreversible: event type codes
 # are permanent and histories written years ago must still decode.
-/pkg/history/                   @skald-io/maintainers @skald-io/core
-/internal/execution/            @skald-io/maintainers @skald-io/core
+/pkg/history/                   @Liona-orph
+/internal/execution/            @Liona-orph
 
 # The wire protocol. Adding a field is routine; changing one breaks clients that
 # are not deployed with the server.
-/pkg/api/                       @skald-io/maintainers @skald-io/core
-/internal/frontend/             @skald-io/maintainers @skald-io/core
+/pkg/api/                       @Liona-orph
+/internal/frontend/             @Liona-orph
 
 # The write path and the storage contract, where crash-safety lives.
-/internal/engine/               @skald-io/maintainers @skald-io/core
-/internal/persistence/          @skald-io/maintainers @skald-io/core
+/internal/engine/               @Liona-orph
+/internal/persistence/          @Liona-orph
 
 # Determinism. A change here can wedge every in-flight execution in a fleet.
-/internal/workflow/             @skald-io/maintainers @skald-io/core
-/pkg/workflow/                  @skald-io/maintainers @skald-io/core
-/pkg/worker/                    @skald-io/maintainers @skald-io/core
+/internal/workflow/             @Liona-orph
+/pkg/workflow/                  @Liona-orph
+/pkg/worker/                    @Liona-orph
 
 # Architecture decisions are reviewed by maintainers regardless of who writes
 # the code that follows them.
-/docs/adr/                      @skald-io/maintainers
+/docs/adr/                      @Liona-orph
 
 # Release, supply chain and CI configuration.
-/.github/                       @skald-io/maintainers
-/.goreleaser.yml                @skald-io/maintainers
-/Dockerfile                     @skald-io/maintainers
-/.dockerignore                  @skald-io/maintainers
-/docker-compose.yml             @skald-io/maintainers
-/Makefile                       @skald-io/maintainers
-/.golangci.yml                  @skald-io/maintainers
-/go.mod                         @skald-io/maintainers
-/go.sum                         @skald-io/maintainers
+/.github/                       @Liona-orph
+/.goreleaser.yml                @Liona-orph
+/Dockerfile                     @Liona-orph
+/.dockerignore                  @Liona-orph
+/docker-compose.yml             @Liona-orph
+/Makefile                       @Liona-orph
+/.golangci.yml                  @Liona-orph
+/go.mod                         @Liona-orph
+/go.sum                         @Liona-orph
 
 # Alerting rules name metrics that internal/telemetry must keep emitting: a
 # rename there and a rule here are one change, reviewed together.
-/deploy/                        @skald-io/maintainers @skald-io/core
+/deploy/                        @Liona-orph

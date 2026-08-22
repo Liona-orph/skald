@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/skald-io/skald/pkg/api"
+	"github.com/Liona-orph/skald/pkg/api"
 )
 
 // Span attribute keys.
@@ -47,7 +47,7 @@ const (
 // instrumentationName identifies this instrumentation library to a backend.
 // It is the import path by convention, which is what makes "which library
 // produced this span" answerable without a lookup table.
-const instrumentationName = "github.com/skald-io/skald/internal/telemetry"
+const instrumentationName = "github.com/Liona-orph/skald/internal/telemetry"
 
 // newTracerProvider builds the provider Skald traces into.
 //
